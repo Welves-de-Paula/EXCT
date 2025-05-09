@@ -1,3 +1,5 @@
+# FEITO COM GPT-4.0
+# -*- coding: utf-8 -*-
 import os
 import threading
 import time
@@ -158,3 +160,6 @@ if __name__ == "__main__":
     root = Tk()
     app = App(root)
     root.mainloop()
+
+ 
+  
