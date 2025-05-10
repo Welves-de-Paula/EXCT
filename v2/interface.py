@@ -11,6 +11,7 @@ class App:
         self.root.title("Divisor de Arquivos Excel")
         self.root.geometry("600x500")
         self.root.configure(bg="#f5f5f5")
+        self.root.deiconify()  # Garante que a janela seja exibida
 
         self.running = False
         self.queue = queue.Queue()
