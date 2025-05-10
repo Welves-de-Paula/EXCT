@@ -3,7 +3,7 @@
 import os
 import threading
 import time
-from tkinter import Tk, filedialog, Toplevel, Label, Button, Text, Scrollbar, END, StringVar, messagebox, IntVar, Entry, Radiobutton
+from tkinter import Tk, filedialog, Toplevel, Label, Button, Text, Scrollbar, END, StringVar, messagebox, IntVar, Entry, Checkbutton, Frame
 from tkinter.ttk import Progressbar
 import subprocess
 from copy import copy
@@ -25,48 +25,72 @@ class App:
     def __init__(self, root):
         self.root = root
         self.root.title("Divisor de Arquivos Excel")
-        self.root.geometry("600x400")
+        self.root.geometry("600x500")
+        self.root.configure(bg="#f5f5f5")  # Fundo claro para uma aparência limpa
 
         self.running = False
         self.queue = queue.Queue()
 
-        self.select_button = Button(root, text="Selecionar Arquivo Excel", command=self.selecionar_arquivo)
-        self.select_button.pack(pady=10)
+        # Inicialize a variável max_linhas_var
+        self.max_linhas_var = IntVar(value=1000)  # Valor padrão de 1000 linhas por arquivo
 
-        self.max_linhas_var = IntVar(value=1000)  # Valor padrão de max_linhas
-        self.max_linhas_label = Label(root, text="Máximo de Linhas por Arquivo:")
-        self.max_linhas_label.pack(pady=5)
-        self.max_linhas_entry = Entry(root, textvariable=self.max_linhas_var)
-        self.max_linhas_entry.pack(pady=5)
+        # Inicialize as variáveis manter_formatacao_var e clonar_cabecalho_var
+        self.manter_formatacao_var = IntVar(value=1)  # Ativado por padrão
+        self.clonar_cabecalho_var = IntVar(value=1)  # Ativado por padrão
+
+        # Título
+        title_label = Label(root, text="Divisor de Arquivos Excel", font=("Arial", 16, "bold"), bg="#f5f5f5", fg="#333")
+        title_label.pack(pady=10)
+
+        # Seção de seleção de arquivo
+        frame_selecao = Frame(root, bg="#ffffff", padx=10, pady=10, relief="groove", borderwidth=2)
+        frame_selecao.pack(pady=10, fill="x", padx=20)
+
+        self.select_button = Button(frame_selecao, text="Selecionar Arquivo Excel", command=self.selecionar_arquivo, bg="#4CAF50", fg="white", font=("Arial", 10, "bold"))
+        self.select_button.pack(pady=5)
+
+        # Configurações
+        frame_config = Frame(root, bg="#ffffff", padx=10, pady=10, relief="groove", borderwidth=2)
+        frame_config.pack(pady=10, fill="x", padx=20)
+
+        self.max_linhas_label = Label(frame_config, text="Máximo de Linhas por Arquivo:", bg="#ffffff", font=("Arial", 10))
+        self.max_linhas_label.grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        self.max_linhas_entry = Entry(frame_config, textvariable=self.max_linhas_var, font=("Arial", 10))
+        self.max_linhas_entry.grid(row=0, column=1, padx=5, pady=5)
         self.max_linhas_entry.bind("<FocusOut>", self.validar_max_linhas)
 
-        self.manter_formatacao_var = IntVar(value=1)  # Radiobutton "Manter formatação" ativado por padrão
-        self.manter_formatacao_label = Label(root, text="Manter Formatação:")
-        self.manter_formatacao_label.pack(pady=5)
-        self.manter_formatacao_on = Radiobutton(root, text="Ativado", variable=self.manter_formatacao_var, value=1)
-        self.manter_formatacao_on.pack()
-        self.manter_formatacao_off = Radiobutton(root, text="Desativado", variable=self.manter_formatacao_var, value=0)
-        self.manter_formatacao_off.pack()
+        self.manter_formatacao_checkbox = Checkbutton(frame_config, text="Manter Formatação", variable=self.manter_formatacao_var, bg="#ffffff", font=("Arial", 10))
+        self.manter_formatacao_checkbox.grid(row=1, column=0, sticky="w", padx=5, pady=5)
 
-        self.clonar_cabecalho_var = IntVar(value=1)  # Radiobutton "Clonar cabeçalho" ativado por padrão
-        self.clonar_cabecalho_label = Label(root, text="Clonar Cabeçalho:")
-        self.clonar_cabecalho_label.pack(pady=5)
-        self.clonar_cabecalho_on = Radiobutton(root, text="Ativado", variable=self.clonar_cabecalho_var, value=1)
-        self.clonar_cabecalho_on.pack()
-        self.clonar_cabecalho_off = Radiobutton(root, text="Desativado", variable=self.clonar_cabecalho_var, value=0)
-        self.clonar_cabecalho_off.pack()
+        self.clonar_cabecalho_checkbox = Checkbutton(frame_config, text="Clonar Cabeçalho", variable=self.clonar_cabecalho_var, bg="#ffffff", font=("Arial", 10))
+        self.clonar_cabecalho_checkbox.grid(row=1, column=1, sticky="w", padx=5, pady=5)
 
-        self.start_button = Button(root, text="Iniciar Divisão", command=self.iniciar_divisao)
+        # Botão de iniciar
+        self.start_button = Button(root, text="Iniciar Divisão", command=self.iniciar_divisao, bg="#2196F3", fg="white", font=("Arial", 12, "bold"))
         self.start_button.pack(pady=10)
 
-        self.progress_label = Label(root, text="Progresso: 0%")
-        self.progress_label.pack(pady=5)
-        self.progress = Progressbar(root, mode="determinate", maximum=100)
-        self.progress.pack(pady=10, fill="x")
+        # Barra de progresso
+        frame_progresso = Frame(root, bg="#ffffff", padx=10, pady=10, relief="groove", borderwidth=2)
+        frame_progresso.pack(pady=10, fill="x", padx=20)
 
-        self.log_area = Text(root, height=15, state="disabled", wrap="word")
-        self.log_area.pack(pady=10, fill="both", expand=True)
-        scrollbar = Scrollbar(self.log_area, command=self.log_area.yview)
+        self.progress_label = Label(frame_progresso, text="Progresso: 0%", bg="#ffffff", font=("Arial", 10))
+        self.progress_label.pack(pady=5)
+        self.progress = Progressbar(frame_progresso, mode="determinate", maximum=100)
+        self.progress.pack(pady=5, fill="x")
+
+        # Área de log
+        frame_log = Frame(root, bg="#ffffff", padx=10, pady=10, relief="groove", borderwidth=2)
+        frame_log.pack(pady=10, fill="both", expand=True, padx=20)
+
+        log_label = Label(frame_log, text="Log de Processamento:", bg="#ffffff", font=("Arial", 10, "bold"))
+        log_label.pack(pady=5)
+
+        self.log_area = Text(frame_log, height=15, state="disabled", wrap="word", font=("Courier", 10))
+        self.log_area.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+
+        scrollbar = Scrollbar(frame_log, command=self.log_area.yview)
+        scrollbar.pack(side="right", fill="y")
+
         self.log_area.configure(yscrollcommand=scrollbar.set)
 
         self.atualizar_interface()
