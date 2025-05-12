@@ -1,0 +1,148 @@
+Assistente de Importação
+
+PONTOS DE MELHORIA / CRÍTICA:
+1. **Uso de Tkinter com exigência de "design moderno" e "responsividade"**:
+   - Tkinter não é ideal para UIs modernas nem responsivas. Se deseja isso, considere usar PyQt, Kivy ou frameworks web como Electron ou Flask com frontend moderno.
+
+2. **"Compatibilidade com dispositivos variados" está vago**:
+   - Se refere apenas a desktop (Windows, Linux, macOS)? Ou inclui mobile? Tkinter não é adequado para mobile. Especifique melhor.
+
+3. **Erro de digitação recorrente: "ajá" em vez de "haja"**:
+   - Corrija para evitar passar uma impressão de amadorismo.
+
+4. **Nenhuma menção ao uso de bibliotecas como pandas, openpyxl ou xlsxwriter**:
+   - São essenciais para manipulação de arquivos Excel com o nível de detalhe exigido. Devem ser mencionadas como pré-requisitos ou sugestões.
+
+5. **"Dividir arquivos mantendo formatação" não é trivial com pandas**:
+   - Manter formatação exige uso de openpyxl ou xlsxwriter com cuidado. Isso deve ser destacado como um desafio técnico.
+
+6. **Faltam testes automatizados e estrutura modular**:
+   - Para um sistema assim, é recomendável exigir módulos separados para validação e manipulação de arquivos. Isso facilita manutenção e testes.
+
+7. **Logs informativos para ações realizadas**:
+   - Detalhe como os logs serão implementados (ex.: salvar em arquivo ou exibir na interface).
+
+8. **Validação de dados**:
+   - Especifique como os erros serão tratados e exibidos ao usuário. Por exemplo, mensagens claras na interface ou em um arquivo de log.
+
+9. **Requisitos de performance**:
+   - Para arquivos grandes, o desempenho pode ser um problema. Considere mencionar otimizações ou limites esperados.
+
+10. **Testes e documentação**:
+    - Inclua a necessidade de testes automatizados e documentação clara para desenvolvedores e usuários finais.
+
+ETAPA 1 — Interface Gráfica Básica
+Crie uma interface gráfica em Python usando Tkinter com:
+- Botões: "Carregar Arquivo", "Salvar", "Dividir", "Sair", "Validar", "Comparar", "Limpar".
+- Layout organizado (grid ou pack) com boa legibilidade.
+- Paleta de cores agradável e fontes legíveis.
+- Mensagens de erro claras e informativas.
+- Design moderno com ícones e imagens apropriadas.
+- Responsividade para diferentes tamanhos de tela.
+- Compatibilidade com dispositivos variados.
+- Logs informativos para ações realizadas.
+
+ETAPA 2 — Formulário de Entrada de Dados
+  - Quando o usuário clicar em "Carregar Arquivo", abra o sistema de arquivos para selecionar um arquivo .xlsx.
+  - Faça a leitura do arquivo e deixa armazenado em uma variável.
+
+ETAPA 3 — Opções para manipulação de dados
+  - Adicione opções para:
+    - Remover o arquivo carregado (Botão Limpar).
+    - Comparar o arquivo carregado com outro arquivo (Botão Comparar), use as regras definidas na ETAPA 4.
+       - Ao clicar, abra uma janela para selecionar o segundo arquivo.
+       - O segundo arquivo deve ser comparado com o primeiro, use as regras definidas na ETAPA 4.
+
+    - Adicione um botão para validar os dados do arquivo carregado (Botão Validar), use as regras definidas na ETAPA 4.
+       
+
+    - Adicione um botão para dividir o arquivo carregado (Botão Dividir), ao clicar, abra uma janela com opções para:
+      - Definir o número de linhas por arquivo.
+      - Escolher se deseja manter a formatação original do Excel.
+      - Escolher se deseja clonar o cabeçalho original em todos os arquivos divididos.
+    
+    - Adicione um botão para salvar os dados do arquivo carregado (Botão Salvar), ao clicar, abra uma janela para escolher o local e o nome do arquivo.
+  
+
+ETAPA 4 — Regras de Validação
+ -Implemente validação para tabelas de Clientes e Produtos ao abrir um .xlsx:
+ 
+
+
+    **Tabela de Clientes**:
+    - **CÓDIGO**: opcional
+    - **NOME**: obrigatório, 3 a 50 caracteres
+    - **CPF**: opcional, único, 11 dígitos (remover caracteres especiais), caso haja arquivo de comparação, verificar se já existe
+    - **RG**: opcional
+    - **CNPJ**: opcional, único, 14 dígitos (remover caracteres especiais), caso haja arquivo de comparação, verificar se já existe
+    - **IE**: opcional,
+    - **TELEFONE**: opcional, 10 ou 11 dígitos (remover caracteres especiais)
+    - **WHATSAPP**: opcional, 10 ou 11 dígitos (remover caracteres especiais)
+    - **EMAIL**: opcional
+    - **LIMITE DE CRÉDITO**: opcional, 0,00 a 999.999,99
+    - **ATIVO**: opcional, [S, N, SIM, NÃO, 1, 0], padrão 1
+    - **NOME DA MÃE**: opcional, 3 a 50 caracteres
+    - **OBSERVAÇÕES**: opcional, 3 a 500 caracteres
+    - **DATA DE NASCIMENTO**: opcional, formato dd/mm/aaaa
+    - **ENDEREÇO**: opcional, 3 a 50 caracteres
+    - **NÚMERO**: opcional, 1 a 10 caracteres
+    - **COMPLEMENTO**: opcional, 3 a 50 caracteres
+    - **BAIRRO**: opcional, 3 a 50 caracteres
+    - **CIDADE**: opcional, 3 a 50 caracteres
+    - **ESTADO**: opcional, 2 caracteres
+    - **CEP**: opcional, 8 caracteres
+
+    **Tabela de Produtos**:
+    - **CÓDIGO**: opcional
+    - **CÓDIGO DE BARRAS**: opcional, único, 13 dígitos (remover caracteres especiais)
+    - **REFERÊNCIA**: opcional, 3 a 50 caracteres (ou usar CÓDIGO se null)
+    - **NOME**: obrigatório, 3 a 50 caracteres
+    - **DESCRIÇÃO**: opcional, 3 a 500 caracteres
+    - **ESTOQUE**: opcional, 0 a 999.999,99 (padrão 0)
+    - **ALERTA ESTOQUE MÍNIMO**: opcional, 0 a 999.999,99 (padrão 0)
+    - **CUSTO**: opcional, 0,00 a 999.999,99 (padrão 0)
+    - **PREÇO DE VENDA**: opcional, 0,00 a 999.999,99 (padrão 0)
+    - **CATEGORIA**: opcional, 1 a 50 caracteres
+    - **UNIDADE DE VENDA**: opcional, [UNID, KG, M, LITRO, PACOTE, CX, FARDO, KIT, M2, M3, PARES, PC, POTE, VIDRO], padrão UNID
+    - **EXIBIR NO CATÁLOGO**: opcional, [S, N, SIM, NÃO, 1, 0], padrão 0
+    - **DESTACAR PRODUTO**: opcional, [S, N, SIM, NÃO, 1, 0], padrão 0
+    - **CONTROLAR ESTOQUE**: opcional, [S, N, SIM, NÃO, 1, 0], padrão 1
+    - **PERMITE VENDER FRACIONADO**: opcional, [S, N, SIM, NÃO, 1, 0], padrão 0
+    - **CADASTRO ATIVO**: opcional, [S, N, SIM, NÃO, 1, 0], padrão 1
+    - **NCM**: opcional, 8 caracteres
+    - **ORIGEM**: opcional, [0, 1, 2, 3], padrão 0
+    - **CLASSIFICAÇÃO FISCAL**: opcional
+    - **CEST**: opcional
+
+
+
+ 
+ETAPA 5 — Divisor de Arquivo Excel
+Implemente uma função que:
+- Divide um arquivo .xlsx em vários, baseado no número de linhas por arquivo (ex: 50).
+- Cria uma subpasta [nome_do_arquivo]_div e salva os novos arquivos.
+- Ela deve ser uma janela com opções para:
+  - Definir o número de linhas por arquivo (por padrão 1000, deve ser editável, pode apenas numero inteiro).
+  - Escolher se deseja manter a formatação original do Excel (por padrão sim).
+  - Escolher se deseja clonar o cabeçalho original em todos os arquivos divididos (por padrão sim).
+
+
+
+ 
+ETAPA 6 —  Pós validação
+Implemente uma função que:
+- Após a validação, gere um arquivo .xlsx com os dados válidos, marcado as linhas inválidas com uma cor de fundo em vermelho, e adicione uma coluna com o motivo da invalidação.
+- O arquivo deve ser salvo na mesma pasta do arquivo original, com o nome [nome_do_arquivo]_validado.xlsx.
+- Se o arquivo já existir, dele-o e crie um novo.
+- O arquivo deve ser salvo com a formatação original do Excel (cores, fontes, etc).
+- Se o arquivo possuir erros, exibir na seção de logs todos os erros encontrados, com o número da linha e a descrição do erro.
+- O arquivo deve ser salvo com o mesmo nome do arquivo original, mas com o sufixo "_validado" adicionado.
+- Se o arquivo original não possuir erros, exibir na seção de logs "Arquivo validado com sucesso!"
+
+
+ 
+
+ETAPA 9 — Comentários no Código
+Adicione comentários explicando cada parte do código: GUI, validações, leitura de arquivo, divisão, etc.
+
+

@@ -1,0 +1,113 @@
+🛠️ ASSISTENTE DE IMPORTAÇÃO DE ARQUIVOS EXCEL (.xlsx)
+
+💡 OBJETIVO
+Criar um assistente de importação de dados em Python, com interface gráfica, validação de dados e manipulação de planilhas Excel.
+
+🔧 FERRAMENTAS
+- Linguagem: Python 3.10+
+- Interface: Tkinter (uso básico)
+- Bibliotecas:
+  - pandas (manipulação de dados)
+  - openpyxl (leitura/escrita Excel com formatação)
+  - os, shutil, re e datetime (utilidades gerais)
+  - tkinter.filedialog (seleção de arquivos)
+  - logging (logs)
+  - ttkbootstrap (opcional, para melhorar a aparência do Tkinter)
+
+
+ETAPA 1 — INTERFACE GRÁFICA BÁSICA
+Crie uma interface com os seguintes botões:
+- Carregar Arquivo
+- Salvar
+- Dividir
+- Sair
+- Validar
+- Comparar
+- Limpar
+
+Requisitos:
+- Layout organizado (grid preferencialmente)
+- Fontes legíveis e paleta de cores sóbria (use ttkbootstrap se quiser algo mais moderno dentro do Tkinter)
+- Mensagens de erro claras
+- Seção de logs com saída dos processos
+- Interface compatível com Windows e Linux
+- Design simples e funcional (não inventar moda visual)
+
+
+ETAPA 2 — CARREGAR ARQUIVO
+- Ao clicar em Carregar Arquivo, abra o sistema de arquivos para selecionar um .xlsx
+- Carregue os dados para uma variável DataFrame com pandas.read_excel()
+
+
+ETAPA 3 — MANIPULAÇÃO DE DADOS
+- Limpar: remove o arquivo carregado da memória.
+- Comparar:
+  - Selecionar um segundo arquivo .xlsx
+  - Comparar os dados carregados com esse segundo arquivo, seguindo regras da ETAPA 4.
+- Validar:
+  - Valida o arquivo carregado conforme as regras da ETAPA 4.
+- Dividir:
+  - Abre uma janela para configurar:
+    - Quantidade de linhas por arquivo (inteiro, padrão 1000)
+    - Manter formatação (padrão: sim)
+    - Clonar cabeçalho (padrão: sim)
+- Salvar:
+  - Salva os dados carregados em novo arquivo .xlsx com janela para escolher destino e nome.
+
+
+ETAPA 4 — REGRAS DE VALIDAÇÃO
+
+Tabela de Clientes:
+- NOME: obrigatório, 3-50 caracteres
+- CPF: opcional, 11 dígitos, único
+- CNPJ: opcional, 14 dígitos, único
+- EMAIL, TELEFONE, WHATSAPP: opcionais, sanitizar e validar
+- ATIVO: valores permitidos: S, N, SIM, NÃO, 1, 0; padrão 1
+- DATA DE NASCIMENTO: opcional, formato dd/mm/aaaa
+- Demais campos: validar tamanho conforme descrição original
+
+Tabela de Produtos:
+- NOME: obrigatório, 3–50 caracteres
+- CÓDIGO DE BARRAS: opcional, único, 13 dígitos
+- REFERÊNCIA: se null, usar CÓDIGO
+- PREÇO, CUSTO, ESTOQUE: numéricos, entre 0 e 999999.99
+- UNIDADE DE VENDA: valores permitidos como UNID, KG, M, LITRO...; padrão UNID
+- EXIBIR NO CATÁLOGO, DESTACAR PRODUTO, CONTROLAR ESTOQUE, PERMITE VENDER FRACIONADO, CADASTRO ATIVO: valores como S, N, SIM, NÃO, 1, 0; padrão conforme descrição original
+- Demais campos: validar como informado
+
+
+ETAPA 5 — DIVISÃO DE ARQUIVOS
+- Divide arquivo em múltiplos .xlsx, com base no número de linhas definido
+- Cada arquivo deve:
+  - Clonar cabeçalho (se configurado)
+  - Manter formatação (se configurado)
+- Salvar os arquivos em subpasta [nome_do_arquivo]_div
+
+
+ETAPA 6 — PÓS-VALIDAÇÃO
+- Após validação:
+  - Gerar arquivo [nome_original]_validado.xlsx
+  - Linhas inválidas com fundo vermelho
+  - Nova coluna com motivo da invalidação
+  - Sobrescrever se já existir
+  - Manter formatação original
+  - Registrar em log erros com número da linha e descrição
+  - Se não houver erro, logar: “Arquivo validado com sucesso!”
+
+
+ETAPA 7 — LOGS
+- Toda ação deve gerar log: carregamento, validação, erro, salvamento, comparação
+- Logs exibidos em tempo real na interface
+- Exemplo:
+  [12/05/2025 10:30] Arquivo clientes.xlsx carregado com sucesso.
+  [12/05/2025 10:31] Linha 27 inválida: CPF duplicado.
+
+
+ETAPA 8 — COMENTÁRIOS NO CÓDIGO
+- O código deve ser dividido por responsabilidades:
+  - GUI
+  - Leitura de arquivos
+  - Validação
+  - Divisão
+  - Salvamento
+- Cada função deve conter docstring e comentários objetivos explicando o que faz
