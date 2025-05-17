@@ -115,3 +115,17 @@ ETAPA 9 — Melhorias de interface
 - Adicionar um menu suspenso com opções adicionais (ajuda, sobre, etc.)
 - Melhorar a responsividade da interface
 
+
+ETAPA 10 — ABSTRAÇÃO
+- Crie classes para cada responsabilidade:
+  - Classe de interface (GUI)
+  - Classe de manipulação de arquivos
+  - Classe de validação
+  - Classe de divisão
+  - Classe de salvamento
+- Cada classe deve ter métodos claros e objetivos
+- Utilize herança e polimorfismo onde for necessário
+- Utilize princípios de SOLID para garantir um código limpo e organizado
+- Utilize o padrão MVC (Model-View-Controller) para separar a lógica de negócio da interface
+- Utilize o padrão Singleton para garantir que apenas uma instância da classe de manipulação de arquivos seja criada
+- Iporte as classes necessárias para o funcionamento do código no arquivo v3
