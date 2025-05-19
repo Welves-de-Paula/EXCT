@@ -22,6 +22,9 @@ def main(filepath=None, title="Layout com Botão Validar"):
     table_headers = []
     file_is_compatible = False  # Flag para compatibilidade
 
+    # Variável para armazenar o resultado do identifier
+    identifier_result = None
+
     if filepath and os.path.isfile(filepath):
         ext = os.path.splitext(filepath)[1].lower()
         if ext == ".xlsx":
@@ -36,20 +39,44 @@ def main(filepath=None, title="Layout com Botão Validar"):
                         for row in rows[1:]
                     ]
                     file_is_compatible = True
+                    # Corrige o caminho do identifier.py para ../script/identifier.py
+                    import importlib.util
+                    import sys
+                    identifier_path = os.path.join(os.path.dirname(__file__), "..", "script", "identifier.py")
+                    spec = importlib.util.spec_from_file_location("identifier", identifier_path)
+                    identifier = importlib.util.module_from_spec(spec)
+                    sys.modules["identifier"] = identifier
+                    spec.loader.exec_module(identifier)
+                    # Supondo que identifier.py tenha uma função 'main' que recebe headers e dados
+                    if hasattr(identifier, "main"):
+                        identifier_result = identifier.main(table_headers, table_data)
             except Exception as e:
                 file_content = f"Erro ao ler arquivo Excel: {e}"
         else:
             file_content = "Arquivo não suportado. Por favor, utilize apenas arquivos .xlsx."
+
+    # Se o arquivo não for compatível, abre o incompatible.py imediatamente
+    if not file_is_compatible:
+        import importlib.util
+        incompatible_path = os.path.join(os.path.dirname(__file__), "incompatible.py")
+        spec = importlib.util.spec_from_file_location("incompatible", incompatible_path)
+        incompatible = importlib.util.module_from_spec(spec)
+        import sys
+        sys.modules["incompatible"] = incompatible
+        spec.loader.exec_module(incompatible)
+        if hasattr(incompatible, "main"):
+            incompatible.main("Arquivo incompatível. Por favor, utilize apenas arquivos .xlsx válidos.")
+        return  # Não segue para a interface principal
 
     def on_validar():
         print("Botão Validar clicado!")
         if filepath:
             print(f"Arquivo recebido: {filepath}")
         if file_is_compatible:
-            # Executa identifier.py passando os dados obtidos
+            # Corrige o caminho do identifier.py para ../script/identifier.py
             import importlib.util
             import sys
-            identifier_path = os.path.join(os.path.dirname(__file__), "identifier.py")
+            identifier_path = os.path.join(os.path.dirname(__file__), "..", "script", "identifier.py")
             spec = importlib.util.spec_from_file_location("identifier", identifier_path)
             identifier = importlib.util.module_from_spec(spec)
             sys.modules["identifier"] = identifier
@@ -79,22 +106,11 @@ def main(filepath=None, title="Layout com Botão Validar"):
     btn_validar = tk.Button(frame, text="Validar", command=on_validar)
     btn_validar.pack(side="left")
 
-    # Exibe como tabela se possível, senão como texto de erro
+    # Exibe apenas mensagem de erro se houver, não exibe tabela
     display_frame = tk.Frame(root, padx=20, pady=20)
     display_frame.pack(fill="both", expand=True)
 
-    if table_headers and table_data:
-        tree = ttk.Treeview(display_frame, columns=table_headers, show="headings")
-        for col in table_headers:
-            tree.heading(col, text=col)
-            tree.column(col, width=120, anchor="w")
-        for row in table_data:
-            tree.insert("", "end", values=row + [""] * (len(table_headers) - len(row)))
-        tree.pack(fill="both", expand=True)
-        scrollbar = ttk.Scrollbar(display_frame, orient="vertical", command=tree.yview)
-        tree.configure(yscroll=scrollbar.set)
-        scrollbar.pack(side="right", fill="y")
-    elif file_content:
+    if file_content:
         text_widget = tk.Text(display_frame, wrap="none")
         text_widget.pack(fill="both", expand=True)
         text_widget.insert("1.0", file_content)
