@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import os
 import importlib.util
-import sys
+import sys  # Import garantido no topo
 import logging
 from openpyxl import load_workbook
 
@@ -37,31 +37,26 @@ def main(filepath=None, title="Assistente de Importação"):
         ext = os.path.splitext(filepath)[1].lower()
         if ext == ".xlsx":
             try:
-                wb = load_workbook(filepath, read_only=True, data_only=True)
-                ws = wb.active
-                rows = list(ws.iter_rows(values_only=True))
-                if rows:
-                    table_headers = [str(h) if h is not None else "" for h in rows[0]]
-                    table_data = [
-                        [str(cell) if cell is not None else "" for cell in row]
-                        for row in rows[1:]
-                    ]
-                    # Validação rigorosa do cabeçalho
-                    import importlib.util
-                    validate_path = os.path.join(os.path.dirname(__file__), "..", "script", "validate.py")
-                    spec = importlib.util.spec_from_file_location("validate", validate_path)
-                    validate = importlib.util.module_from_spec(spec)
-                    sys.modules["validate"] = validate
-                    spec.loader.exec_module(validate)
-                    table_type = validate.identify_table_type(table_headers)
-                    if table_type is None:
-                        # Cabeçalho não corresponde exatamente a nenhum layout
-                        file_is_compatible = False
-                        file_content = "Arquivo incompatível: o cabeçalho não corresponde exatamente ao layout esperado (Clientes ou Produtos).\n\nColunas encontradas:\n" + ", ".join(table_headers)
-                    else:
-                        file_is_compatible = True
+                # Usa o script/reading.py para ler o arquivo Excel corretamente
+                import importlib.util
+                reading_path = os.path.join(os.path.dirname(__file__), "..", "script", "reading.py")
+                spec = importlib.util.spec_from_file_location("reading", reading_path)
+                reading = importlib.util.module_from_spec(spec)
+                sys.modules["reading"] = reading
+                spec.loader.exec_module(reading)
+                table_headers, table_data = reading.read_excel(filepath)
+                # Validação rigorosa do cabeçalho
+                validate_path = os.path.join(os.path.dirname(__file__), "..", "script", "validate.py")
+                spec = importlib.util.spec_from_file_location("validate", validate_path)
+                validate = importlib.util.module_from_spec(spec)
+                sys.modules["validate"] = validate
+                spec.loader.exec_module(validate)
+                table_type = validate.identify_table_type(table_headers)
+                if table_type is None:
+                    file_is_compatible = False
+                    file_content = "Arquivo incompatível: o cabeçalho não corresponde exatamente ao layout esperado (Clientes ou Produtos).\n\nColunas encontradas:\n" + ", ".join(table_headers)
                 else:
-                    file_content = "Arquivo Excel vazio."
+                    file_is_compatible = True
             except Exception as e:
                 file_content = f"Erro ao ler arquivo Excel: {e}"
         else:
@@ -73,7 +68,7 @@ def main(filepath=None, title="Assistente de Importação"):
         incompatible_path = os.path.join(os.path.dirname(__file__), "incompatible.py")
         spec = importlib.util.spec_from_file_location("incompatible", incompatible_path)
         incompatible = importlib.util.module_from_spec(spec)
-        import sys
+        import sys  # Garante que sys está disponível no escopo local
         sys.modules["incompatible"] = incompatible
         spec.loader.exec_module(incompatible)
         if hasattr(incompatible, "main"):
@@ -84,13 +79,11 @@ def main(filepath=None, title="Assistente de Importação"):
         print("Botão Validar clicado!")
         if filepath:
             print(f"Arquivo recebido: {filepath}")
-        if file_is_compatible:
-            # Corrige o caminho do identifier.py para ../script/identifier.py
-            import importlib.util
-            import sys
+        if file_is_compatible:            # Corrige o caminho do identifier.py para ../script/identifier.py
             identifier_path = os.path.join(os.path.dirname(__file__), "..", "script", "identifier.py")
             spec = importlib.util.spec_from_file_location("identifier", identifier_path)
             identifier = importlib.util.module_from_spec(spec)
+            import sys  # Garante que sys está disponível no escopo local
             sys.modules["identifier"] = identifier
             spec.loader.exec_module(identifier)
             # Supondo que identifier.py tenha uma função 'main' que recebe headers e dados
@@ -98,7 +91,6 @@ def main(filepath=None, title="Assistente de Importação"):
                 identifier.main(table_headers, table_data)
         else:
             # Abre incompatible.py com mensagem
-            import importlib.util
             incompatible_path = os.path.join(os.path.dirname(__file__), "incompatible.py")
             spec = importlib.util.spec_from_file_location("incompatible", incompatible_path)
             incompatible = importlib.util.module_from_spec(spec)
@@ -262,18 +254,6 @@ def main(filepath=None, title="Assistente de Importação"):
             popup.destroy()
         tk.Button(popup, text="Salvar", command=salvar).grid(row=len(table_headers), column=0, columnspan=2)
     ttk.Button(btn_frame, text="Corrigir Seleção", command=on_corrigir, style="TButton").pack(side="left", padx=8)
-    # Função para atualizar a barra de progresso
-    def atualizar_progresso(valor):
-        progress.set(valor)
-        root.update_idletasks()
-
-    # Exemplo de uso da barra de progresso durante operações longas
-    def operacao_longa():
-        for i in range(101):
-            atualizar_progresso(i)
-            root.after(5)  # Simula processamento
-        messagebox.showinfo("Concluído", "Operação longa finalizada!")
-        atualizar_progresso(0)
     # Botão para testar barra de progresso
     ttk.Button(btn_frame, text="Testar Progresso", command=operacao_longa).pack(side="left", padx=8)
     # Busca

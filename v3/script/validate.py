@@ -2,6 +2,7 @@ import re
 from datetime import datetime, date
 from rules.customer import RULES as CUSTOMER_RULES
 from rules.product import RULES as PRODUCT_RULES
+import unicodedata
 
 # Funções auxiliares para validação
 def is_required(value):
@@ -131,14 +132,26 @@ def validate_rows(rows, rules=CUSTOMER_RULES):
             all_errors.append({"row": idx + 1, "errors": row_errors})
     return all_errors
 
+def normalize_label(label):
+    """Remove acentuação, espaços extras e deixa maiúsculo para comparação robusta."""
+    if not isinstance(label, str):
+        label = str(label)
+    label = label.strip().upper()
+    label = ''.join(
+        c for c in unicodedata.normalize('NFD', label)
+        if unicodedata.category(c) != 'Mn'
+    )
+    label = ' '.join(label.split())  # Remove espaços duplicados
+    return label
+
 def get_labels_from_rules(rules):
     """Retorna a lista de labels das regras, na ordem definida."""
-    return [rule["label"].strip().upper() for rule in rules]
+    return [normalize_label(rule["label"]) for rule in rules]
 
 def validate_exact_header(header, rules):
     """Valida se o header da planilha corresponde exatamente (ordem, nomes, quantidade) aos labels das regras."""
     expected = get_labels_from_rules(rules)
-    received = [str(h).strip().upper() for h in header]
+    received = [normalize_label(h) for h in header]
     return received == expected
 
 def identify_table_type(columns):
