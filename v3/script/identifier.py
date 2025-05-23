@@ -1,25 +1,59 @@
-import json
+import re
 
-def load_labels_from_rule(filepath):
-    with open(filepath, 'r', encoding='utf-8') as f:
-        regras = json.load(f)
-    # Supondo que as regras tenham uma chave 'labels' com lista de nomes de colunas
-    return set(regras.get('labels', []))
+from rules.customer import RULES as CUSTOMER_RULES
+from rules.product import RULES as PRODUCT_RULES
 
-def identify_table_type(header, regras_produtos_path, regras_clientes_path):
-    labels_produtos = load_labels_from_rule(regras_produtos_path)
-    labels_clientes = load_labels_from_rule(regras_clientes_path)
-    header_set = set(header)
 
-    match_produtos = len(header_set & labels_produtos)
-    match_clientes = len(header_set & labels_clientes)
+def normalize_header(header):
+    """
+    Normaliza o nome do header para snake_case.
+    """
+    header = header.strip().lower()
+    header = re.sub(r"[áàãâä]", "a", header)
+    header = re.sub(r"[éèêë]", "e", header)
+    header = re.sub(r"[íìîï]", "i", header)
+    header = re.sub(r"[óòõôö]", "o", header)
+    header = re.sub(r"[úùûü]", "u", header)
+    header = re.sub(r"[ç]", "c", header)
+    header = re.sub(r"[^a-z0-9]+", "_", header)
+    header = re.sub(r"_+", "_", header)
+    header = header.strip("_")
+    return header
 
-    if match_produtos > match_clientes and match_produtos > 0:
-        return "produtos"
-    elif match_clientes > match_produtos and match_clientes > 0:
-        return "clientes"
+def map_rules(rules):
+    """
+    Mapeia as regras de validação para um formato específico.
+    """
+    mapped_rules = []
+    for rule in rules:
+        mapped_rule = {
+            'name':   rule["label"],
+            'value':  normalize_header(rule["label"]), 
+            'column': rule["column"],  
+        }
+        mapped_rules.append(mapped_rule)
+    return mapped_rules
+
+
+def identify_table_type(excel_data):
+    headers = excel_data['headers']
+    # Extrai os pares (column, value) dos headers lidos
+    file_columns = [(h['column'], h['value']) for h in headers]
+    # Regras clientes
+    customer_rules = map_rules(CUSTOMER_RULES)
+    customer_columns = [(r['column'], r['value']) for r in customer_rules]
+    is_customer = file_columns == customer_columns
+    # Regras produtos
+    product_rules = map_rules(PRODUCT_RULES)
+    product_columns = [(r['column'], r['value']) for r in product_rules]
+    is_product = file_columns == product_columns
+    if is_customer:
+        return 'customer'
+    elif is_product:
+        return 'product'
     else:
-        return "desconhecido"
+        return 'desconhecido'
+
 
 # Exemplo de uso:
 # header = ['nome', 'preco', 'quantidade']

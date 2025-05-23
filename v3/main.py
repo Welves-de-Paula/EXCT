@@ -15,6 +15,13 @@ appTitle = "Assistente de Importação"
 
 from ui import start
 from ui import home
+from ui import incompatible
+
+
+from script.reading import read_excel
+from ui.home import abrir_home_com_dados
+from ui.incompatible import exibir_mensagem_incompativel
+from script.identifier import identify_table_type
 import os
 import shutil
 import logging
@@ -37,8 +44,15 @@ def limpar_data_dir():
 def main():
     filepath = start.main()
     if filepath:
-        home.main(filepath)
+        excel_data = read_excel(filepath)
+        tipo = identify_table_type(excel_data)
+        if tipo == 'desconhecido':
+            exibir_mensagem_incompativel()
+            return
+        elif tipo in ('customer', 'product'):
+            abrir_home_com_dados(excel_data)
     limpar_data_dir()
 
 if __name__ == "__main__":
     main()
+
