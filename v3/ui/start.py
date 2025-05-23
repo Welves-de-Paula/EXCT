@@ -1,4 +1,4 @@
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import filedialog
 from script.store import store
 
@@ -16,26 +16,27 @@ def abrir_arquivo(root, selected_file):
         root.destroy()  # Fecha a janela imediatamente após seleção
 
 def main():
-    root = tk.Tk()
+    ctk.set_appearance_mode("light")
+    ctk.set_default_color_theme("green")
+    root = ctk.CTk()
     root.title("Assistente de Importação")
     root.geometry("420x240")
     root.resizable(False, False)
     root.configure(bg="#f5f6fa")
 
-    container = tk.Frame(root, bg="#f5f6fa")
+    container = ctk.CTkFrame(root, fg_color="transparent")
     container.place(relx=0.5, rely=0.5, anchor="center")
 
-    label = tk.Label(
+    label = ctk.CTkLabel(
         container,
         text="Bem-vindo ao Assistente de Importação!",
         font=("Segoe UI", 15, "bold"),
-        bg="#f5f6fa",
-        fg="#222"
+        text_color="#222",
+        fg_color="transparent"
     )
-
     label.pack(pady=(0, 18))
 
-    frame_selecao = tk.Frame(container, bg="#f5f6fa")
+    frame_selecao = ctk.CTkFrame(container, fg_color="transparent")
     frame_selecao.pack()
 
     selected_file = {"path": None}
@@ -43,29 +44,26 @@ def main():
     def on_select():
         abrir_arquivo(root, selected_file)
 
-    select_button = tk.Button(
+    select_button = ctk.CTkButton(
         frame_selecao,
         text="Selecionar Arquivo Excel",
         command=on_select,
-        bg="#4CAF50",
-        activebackground="#388e3c",
-        fg="white",
+        fg_color="#4CAF50",
+        hover_color="#388e3c",
+        text_color="white",
         font=("Segoe UI", 11, "bold"),
-        bd=0,
-        relief="flat",
-        padx=18,
-        pady=8,
-        cursor="hand2"
+        corner_radius=16,
+        height=40,
+        width=200
     )
-
     select_button.pack(pady=5)
 
-    footer = tk.Label(
+    footer = ctk.CTkLabel(
         root,
         text="© 2024 Assistente de Importação",
         font=("Segoe UI", 8),
-        bg="#f5f6fa",
-        fg="#888"
+        text_color="#888",
+        fg_color="transparent"
     )
     footer.pack(side="bottom", pady=8)
 

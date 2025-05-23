@@ -13,7 +13,7 @@ def exibir_mensagem_incompativel():
     root.geometry("480x280")
     root.resizable(False, False)
 
-    frame = ctk.CTkFrame(root, fg_color="#f5f6fa")
+    frame = ctk.CTkFrame(root, fg_color="transparent")  # Fundo transparente
     frame.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.92, relheight=0.8)
 
     label = ctk.CTkLabel(
@@ -21,7 +21,7 @@ def exibir_mensagem_incompativel():
         text="O arquivo selecionado não é compatível com as regras de importação.",
         text_color="#c0392b",
         font=("Segoe UI", 16, "bold"),
-        fg_color="#f5f6fa",
+        fg_color="transparent",
         wraplength=400,
         justify="center"
     )
@@ -60,7 +60,7 @@ def exibir_mensagem_incompativel():
         text="© 2024 Assistente de Importação",
         font=("Segoe UI", 8),
         text_color="#888",
-        fg_color="#f5f6fa"
+        fg_color="transparent"
     )
     footer.pack(side="bottom", pady=8)
 
