@@ -1,5 +1,7 @@
 import re
 from datetime import datetime
+import pandas as pd
+from script.reading import read_excel
 
 def validar_nome(nome):
     if not nome or not (3 <= len(nome) <= 50):
@@ -70,3 +72,22 @@ def validar_tamanho_campo(valor, tamanho_max, campo_nome):
     if valor and len(str(valor)) > tamanho_max:
         return False, f"{campo_nome} excede o tamanho máximo de {tamanho_max} caracteres."
     return True, ""
+
+def compare_data(file1, file2):
+    # Lê os dois arquivos Excel
+    headers1, data1 = read_excel(file1)
+    headers2, data2 = read_excel(file2)
+    df1 = pd.DataFrame(data1, columns=headers1)
+    df2 = pd.DataFrame(data2, columns=headers2)
+    # Interseção de colunas
+    common_cols = list(set(df1.columns) & set(df2.columns))
+    if not common_cols:
+        return [], [], []
+    # Dados duplicados
+    duplicados = pd.merge(df1, df2, on=common_cols, how='inner')
+    # Dados exclusivos
+    exclusivos1 = pd.merge(df1, df2, on=common_cols, how='left', indicator=True)
+    exclusivos1 = exclusivos1[exclusivos1['_merge'] == 'left_only'].drop('_merge', axis=1)
+    exclusivos2 = pd.merge(df2, df1, on=common_cols, how='left', indicator=True)
+    exclusivos2 = exclusivos2[exclusivos2['_merge'] == 'left_only'].drop('_merge', axis=1)
+    return duplicados.values.tolist(), exclusivos1.values.tolist(), exclusivos2.values.tolist()

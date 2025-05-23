@@ -13,8 +13,8 @@ appTitle = "Assistente de Importação"
 # from divisor import Divisor
 # from salvador import Salvador
 
-from interface import start
-from interface import home
+from ui import start
+from ui import home
 import os
 import shutil
 
