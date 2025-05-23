@@ -1,1 +1,0 @@
-2025-05-23 08:17:53,097 INFO: Comparação realizada entre C:/Users/Welves/Desktop/para import/MOD_IMPORT_PRODUTOS (1).xlsx e C:/Users/Welves/Desktop/para import/MOD_IMPORT_CLIENTES (1) (1).xlsx

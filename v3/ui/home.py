@@ -1,6 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox
 import os
 import importlib.util
 import sys
@@ -47,18 +46,22 @@ def main(filepath=None, title="Assistente de Importação"):
                         [str(cell) if cell is not None else "" for cell in row]
                         for row in rows[1:]
                     ]
-                    file_is_compatible = True
-                    # Corrige o caminho do identifier.py para ../script/identifier.py
+                    # Validação rigorosa do cabeçalho
                     import importlib.util
-                    import sys
-                    identifier_path = os.path.join(os.path.dirname(__file__), "..", "script", "identifier.py")
-                    spec = importlib.util.spec_from_file_location("identifier", identifier_path)
-                    identifier = importlib.util.module_from_spec(spec)
-                    sys.modules["identifier"] = identifier
-                    spec.loader.exec_module(identifier)
-                    # Supondo que identifier.py tenha uma função 'main' que recebe headers e dados
-                    if hasattr(identifier, "main"):
-                        identifier_result = identifier.main(table_headers, table_data)
+                    validate_path = os.path.join(os.path.dirname(__file__), "..", "script", "validate.py")
+                    spec = importlib.util.spec_from_file_location("validate", validate_path)
+                    validate = importlib.util.module_from_spec(spec)
+                    sys.modules["validate"] = validate
+                    spec.loader.exec_module(validate)
+                    table_type = validate.identify_table_type(table_headers)
+                    if table_type is None:
+                        # Cabeçalho não corresponde exatamente a nenhum layout
+                        file_is_compatible = False
+                        file_content = "Arquivo incompatível: o cabeçalho não corresponde exatamente ao layout esperado (Clientes ou Produtos).\n\nColunas encontradas:\n" + ", ".join(table_headers)
+                    else:
+                        file_is_compatible = True
+                else:
+                    file_content = "Arquivo Excel vazio."
             except Exception as e:
                 file_content = f"Erro ao ler arquivo Excel: {e}"
         else:
@@ -74,7 +77,7 @@ def main(filepath=None, title="Assistente de Importação"):
         sys.modules["incompatible"] = incompatible
         spec.loader.exec_module(incompatible)
         if hasattr(incompatible, "main"):
-            incompatible.main("Arquivo incompatível. Por favor, utilize apenas arquivos .xlsx válidos.")
+            incompatible.main(file_content or "Arquivo incompatível. Por favor, utilize apenas arquivos .xlsx válidos.")
         return  # Não segue para a interface principal
 
     def on_validar():
@@ -185,15 +188,111 @@ def main(filepath=None, title="Assistente de Importação"):
                 logging.error(f"Erro ao dividir arquivo: {e}")
         tk.Button(popup, text="Dividir", command=executar_divisao).pack(pady=10)
 
+    # Estilo moderno para a interface
     root = tk.Tk()
     root.title(title)
-    root.state('zoomed')  # Maximiza a janela
+    root.state('zoomed')
+    root.configure(bg="#f5f6fa")
+    style = ttk.Style()
+    style.theme_use('clam')
+    style.configure("Treeview",
+        background="#f5f6fa",
+        foreground="#222",
+        rowheight=28,
+        fieldbackground="#f5f6fa",
+        font=("Segoe UI", 11)
+    )
+    style.configure("Treeview.Heading",
+        background="#1976d2",
+        foreground="white",
+        font=("Segoe UI", 12, "bold")
+    )
+    style.map("Treeview",
+        background=[('selected', '#90caf9')],
+        foreground=[('selected', '#222')]
+    )
+    style.configure("TButton",
+        font=("Segoe UI", 11, "bold"),
+        padding=8,
+        background="#1976d2",
+        foreground="white"
+    )
+    style.map("TButton",
+        background=[('active', '#1565c0')],
+        foreground=[('active', 'white')]
+    )
+    # Container centralizado
+    container = tk.Frame(root, bg="#f5f6fa")
+    container.pack(expand=True, fill="both")
+    # Título
+    tk.Label(container, text="Assistente de Importação", font=("Segoe UI", 22, "bold"), bg="#f5f6fa", fg="#1976d2").pack(pady=(20, 10))
+    # Botões
+    btn_frame = tk.Frame(container, bg="#f5f6fa")
+    btn_frame.pack(pady=10)
+    ttk.Button(btn_frame, text="Validar", command=on_validar).pack(side="left", padx=8)
+    ttk.Button(btn_frame, text="Comparar Dados", command=on_comparar).pack(side="left", padx=8)
+    ttk.Button(btn_frame, text="Dividir Arquivo", command=on_dividir).pack(side="left", padx=8)
+    # Correção manual de células
+    def on_corrigir():
+        # Busca o widget treeview criado em exibir_tabela
+        for widget in display_frame.winfo_children():
+            if isinstance(widget, ttk.Treeview):
+                tree = widget
+                break
+        else:
+            messagebox.showwarning("Tabela", "Tabela não encontrada.")
+            return
+        item = tree.focus()
+        if not item:
+            messagebox.showwarning("Seleção", "Selecione uma linha para corrigir.")
+            return
+        valores = tree.item(item, 'values')
+        popup = tk.Toplevel()
+        popup.title("Corrigir Dados")
+        entries = []
+        for i, (col, val) in enumerate(zip(table_headers, valores)):
+            tk.Label(popup, text=col).grid(row=i, column=0)
+            e = tk.Entry(popup)
+            e.insert(0, val)
+            e.grid(row=i, column=1)
+            entries.append(e)
+        def salvar():
+            novos_valores = [e.get() for e in entries]
+            tree.item(item, values=novos_valores)
+            popup.destroy()
+        tk.Button(popup, text="Salvar", command=salvar).grid(row=len(table_headers), column=0, columnspan=2)
+    ttk.Button(btn_frame, text="Corrigir Seleção", command=on_corrigir, style="TButton").pack(side="left", padx=8)
+    # Função para atualizar a barra de progresso
+    def atualizar_progresso(valor):
+        progress.set(valor)
+        root.update_idletasks()
 
+    # Exemplo de uso da barra de progresso durante operações longas
+    def operacao_longa():
+        for i in range(101):
+            atualizar_progresso(i)
+            root.after(5)  # Simula processamento
+        messagebox.showinfo("Concluído", "Operação longa finalizada!")
+        atualizar_progresso(0)
+    # Botão para testar barra de progresso
+    ttk.Button(btn_frame, text="Testar Progresso", command=operacao_longa).pack(side="left", padx=8)
+    # Busca
+    search_frame = tk.Frame(container, bg="#f5f6fa")
+    search_frame.pack(pady=5)
+    tk.Label(search_frame, text="Buscar:", font=("Segoe UI", 11), bg="#f5f6fa").pack(side="left")
+    search_var = tk.StringVar()
+    tk.Entry(search_frame, textvariable=search_var, font=("Segoe UI", 11), width=30).pack(side="left", padx=5)
     # Barra de progresso
     progress = tk.DoubleVar(value=0)
-    progress_bar = ttk.Progressbar(root, variable=progress, maximum=100)
-    progress_bar.pack(fill="x", padx=20, pady=5)
+    progress_bar = ttk.Progressbar(container, variable=progress, maximum=100, style="TProgressbar")
+    progress_bar.pack(fill="x", padx=20, pady=10)
+    # Área de exibição
+    display_frame = tk.Frame(container, bg="#f5f6fa")
+    display_frame.pack(fill="both", expand=True, padx=20, pady=10)
+    # Rodapé
+    tk.Label(root, text="© 2024 Assistente de Importação", font=("Segoe UI", 9), bg="#f5f6fa", fg="#888").pack(side="bottom", pady=8)
 
+    # Função para atualizar a barra de progresso
     def atualizar_progresso(valor):
         progress.set(valor)
         root.update_idletasks()
@@ -211,14 +310,6 @@ def main(filepath=None, title="Assistente de Importação"):
 
     btn_validar = tk.Button(frame, text="Validar", command=on_validar)
     btn_validar.pack(side="left")
-
-    # Adiciona botões à interface
-    btn_frame = tk.Frame(root)
-    btn_frame.pack(pady=10)
-    tk.Button(btn_frame, text="Validar", command=on_validar, bg="#4CAF50", fg="white").pack(side="left", padx=5)
-    tk.Button(btn_frame, text="Comparar Dados", command=on_comparar, bg="#1976d2", fg="white").pack(side="left", padx=5)
-    tk.Button(btn_frame, text="Dividir Arquivo", command=on_dividir, bg="#ffa000", fg="white").pack(side="left", padx=5)
-    tk.Button(btn_frame, text="Testar Progresso", command=operacao_longa, bg="#43a047", fg="white").pack(side="left", padx=5)
 
     # Correção manual de células
     def on_corrigir():

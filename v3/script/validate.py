@@ -131,27 +131,25 @@ def validate_rows(rows, rules=CUSTOMER_RULES):
             all_errors.append({"row": idx + 1, "errors": row_errors})
     return all_errors
 
+def get_labels_from_rules(rules):
+    """Retorna a lista de labels das regras, na ordem definida."""
+    return [rule["label"].strip().upper() for rule in rules]
+
+def validate_exact_header(header, rules):
+    """Valida se o header da planilha corresponde exatamente (ordem, nomes, quantidade) aos labels das regras."""
+    expected = get_labels_from_rules(rules)
+    received = [str(h).strip().upper() for h in header]
+    return received == expected
+
 def identify_table_type(columns):
     """
     Identifica se a tabela é de clientes ou produtos com base nas colunas e labels das regras.
     Retorna 'customer', 'product' ou None.
+    Agora exige correspondência exata e ordem dos labels.
     """
-    def get_rule_names_and_labels(rules):
-        names = set(rule["name"].lower() for rule in rules)
-        labels = set(rule["label"].lower() for rule in rules)
-        return names, labels
-
-    customer_names, customer_labels = get_rule_names_and_labels(CUSTOMER_RULES)
-    product_names, product_labels = get_rule_names_and_labels(PRODUCT_RULES)
-
-    columns_set = set(col.lower() for col in columns)
-
-    customer_matches = len(columns_set & customer_names) + len(columns_set & customer_labels)
-    product_matches = len(columns_set & product_names) + len(columns_set & product_labels)
-
-    if customer_matches > product_matches and customer_matches > 0:
+    if validate_exact_header(columns, CUSTOMER_RULES):
         return "customer"
-    elif product_matches > customer_matches and product_matches > 0:
+    elif validate_exact_header(columns, PRODUCT_RULES):
         return "product"
     else:
         return None

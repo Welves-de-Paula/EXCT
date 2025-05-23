@@ -17,8 +17,11 @@ from ui import start
 from ui import home
 import os
 import shutil
+import logging
 
 def limpar_data_dir():
+    # Fecha todos os handlers do logging para liberar o arquivo de log
+    logging.shutdown()
     data_dir = os.path.join(os.path.dirname(__file__), "data")
     if os.path.exists(data_dir):
         for nome_arquivo in os.listdir(data_dir):
