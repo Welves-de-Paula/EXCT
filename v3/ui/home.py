@@ -15,6 +15,9 @@ class HomeApp(tk.Tk):
         self.title('Assistente de Importação - Visualização de Dados')
         self.geometry('1000x600')
         self.excel_data = excel_data
+        self.after_ids = []  # Lista para armazenar IDs de callbacks after
+        self.operacao_em_andamento = False  # Flag para operações longas
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.create_widgets()
 
     def create_widgets(self):
@@ -76,6 +79,30 @@ class HomeApp(tk.Tk):
     def is_row_invalid(self, row):
         # Exemplo: considere inválido se algum campo estiver vazio
         return any(v == '' for v in row.values())
+
+    def safe_after(self, delay, callback):
+        # Agendamento seguro de callbacks
+        if self.winfo_exists():
+            after_id = self.after(delay, callback)
+            self.after_ids.append(after_id)
+            return after_id
+        return None
+
+    def cancel_all_after(self):
+        # Cancela todos os callbacks agendados
+        for after_id in self.after_ids:
+            try:
+                self.after_cancel(after_id)
+            except Exception:
+                pass
+        self.after_ids.clear()
+
+    def on_closing(self):
+        if self.operacao_em_andamento:
+            if not messagebox.askyesno("Confirmação", "Uma operação está em andamento. Deseja realmente fechar e cancelar?"):
+                return
+        self.cancel_all_after()
+        self.destroy()
 
 # Função para abrir a tela Home com os dados lidos
 
