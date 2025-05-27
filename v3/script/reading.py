@@ -2,6 +2,7 @@ import os
 import re
 from openpyxl import load_workbook
 
+
 def normalize_header(header):
     """
     Normaliza o nome do header para snake_case.
@@ -17,6 +18,7 @@ def normalize_header(header):
     header = re.sub(r"_+", "_", header)
     header = header.strip("_")
     return header
+
 
 def get_cell_style(cell):
     """
@@ -44,6 +46,7 @@ def get_cell_style(cell):
         }
     return style
 
+
 def read_excel(filepath):
     """
     Lê um arquivo Excel (.xlsx) e retorna um dicionário com headers, rows e style.
@@ -51,15 +54,18 @@ def read_excel(filepath):
     """
     ext = os.path.splitext(filepath)[1].lower()
     if ext != ".xlsx":
-        raise ValueError("Arquivo não suportado. Por favor, utilize apenas arquivos .xlsx.")
+        raise ValueError(
+            "Arquivo não suportado. Por favor, utilize apenas arquivos .xlsx.")
     wb = load_workbook(filepath, read_only=False, data_only=True)
     ws = wb.active
     rows = list(ws.iter_rows(values_only=False))
     if not rows:
         return {'headers': [], 'rows': [], 'style': {}}
     # Headers
-    headers = [str(cell.value) if cell.value is not None else "" for cell in rows[0]]
+    headers = [
+        str(cell.value) if cell.value is not None else "" for cell in rows[0]]
     normalized_headers = [normalize_header(h) for h in headers]
+
     def idx_to_excel_col(idx):
         col = ''
         while idx >= 0:
@@ -67,31 +73,43 @@ def read_excel(filepath):
             idx = idx // 26 - 1
         return col
     headers_dict = [
-        {'name': h, 'value': nh, 'column': idx_to_excel_col(idx)}
+        {
+            'key': nh,
+            'label': h,
+            'column': idx_to_excel_col(idx)
+        }
         for idx, (h, nh) in enumerate(zip(headers, normalized_headers))
-    ]
-
-     # Rows (ignora linhas completamente vazias)
+    ]    # Rows (ignora linhas completamente vazias)
     data_rows = []
-    for row in rows[1:]:
+    for r_idx, row in enumerate(rows[1:]):
         row_dict = {}
         is_empty = True
-        for idx, cell in enumerate(row):
-            key = normalized_headers[idx] if idx < len(normalized_headers) else f'col_{idx+1}'
+        for c_idx, cell in enumerate(row):
+            key = normalized_headers[c_idx] if c_idx < len(
+                normalized_headers) else f'col_{c_idx+1}'
             value = str(cell.value) if cell.value is not None else ""
+            label = headers[c_idx] if c_idx < len(headers) else key
+            cell_ref = f"{chr(65 + c_idx)}{r_idx+2}"
+
+            style = get_cell_style(cell)
             if value.strip() != "":
                 is_empty = False
-            row_dict[key] = value
+            row_dict[key] = {
+                'key': key,
+                'value': value,
+                'label': label,
+                'cell': cell_ref,
+                'column': idx_to_excel_col(c_idx),
+                'row': r_idx + 2,  # Linha do Excel (1-indexed)
+                'style': style
+            }
+
         if not is_empty:
+            # Adiciona referência da linha do Excel
+            row_dict['row_ref'] = r_idx + 2
             data_rows.append(row_dict)
-    # Style
-    style = {}
-    for r_idx, row in enumerate(rows):
-        for c_idx, cell in enumerate(row):
-            cell_key = f'{r_idx},{c_idx}'
-            style[cell_key] = get_cell_style(cell)
+
     return {
         'headers': headers_dict,
         'rows': data_rows,
-        'style': style
     }

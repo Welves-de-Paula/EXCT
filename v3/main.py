@@ -4,6 +4,16 @@ Arquivo principal do Assistente de Importação de Arquivos Excel (.xlsx)
 Responsável por inicializar a aplicação e importar as classes principais.
 """
 
+import logging
+import shutil
+import os
+from script.identifier import identify_table_type
+from ui.incompatible import exibir_mensagem_incompativel
+from ui.home import abrir_home_com_dados
+from script.reading import read_excel
+from ui import incompatible
+from ui import home
+from ui import start
 appTitle = "Assistente de Importação"
 
 # Importações das classes (a serem implementadas nos respectivos módulos)
@@ -13,18 +23,6 @@ appTitle = "Assistente de Importação"
 # from divisor import Divisor
 # from salvador import Salvador
 
-from ui import start
-from ui import home
-from ui import incompatible
-
-
-from script.reading import read_excel
-from ui.home import abrir_home_com_dados
-from ui.incompatible import exibir_mensagem_incompativel
-from script.identifier import identify_table_type
-import os
-import shutil
-import logging
 
 def limpar_data_dir():
     # Fecha todos os handlers do logging para liberar o arquivo de log
@@ -41,18 +39,20 @@ def limpar_data_dir():
             except Exception as e:
                 print(f"Erro ao remover {caminho_arquivo}: {e}")
 
+
 def main():
     filepath = start.main()
     if filepath:
         excel_data = read_excel(filepath)
         tipo = identify_table_type(excel_data)
-        if tipo == 'desconhecido':
+
+        if tipo == 'UNKNOWN':
             exibir_mensagem_incompativel()
             return
-        elif tipo in ('customer', 'product'):
-            abrir_home_com_dados(excel_data)
+        elif tipo in ('CUSTOMER', 'PRODUCT'):
+            abrir_home_com_dados(excel_data, tipo)
     limpar_data_dir()
+
 
 if __name__ == "__main__":
     main()
-

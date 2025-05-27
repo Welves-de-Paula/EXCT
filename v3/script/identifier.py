@@ -1,61 +1,31 @@
-import re
-
 from rules.customer import RULES as CUSTOMER_RULES
 from rules.product import RULES as PRODUCT_RULES
 
 
-def normalize_header(header):
-    """
-    Normaliza o nome do header para snake_case.
-    """
-    header = header.strip().lower()
-    header = re.sub(r"[áàãâä]", "a", header)
-    header = re.sub(r"[éèêë]", "e", header)
-    header = re.sub(r"[íìîï]", "i", header)
-    header = re.sub(r"[óòõôö]", "o", header)
-    header = re.sub(r"[úùûü]", "u", header)
-    header = re.sub(r"[ç]", "c", header)
-    header = re.sub(r"[^a-z0-9]+", "_", header)
-    header = re.sub(r"_+", "_", header)
-    header = header.strip("_")
-    return header
-
-def map_rules(rules):
-    """
-    Mapeia as regras de validação para um formato específico.
-    """
-    mapped_rules = []
-    for rule in rules:
-        mapped_rule = {
-            'name':   rule["label"],
-            'value':  normalize_header(rule["label"]), 
-            'column': rule["column"],  
-        }
-        mapped_rules.append(mapped_rule)
-    return mapped_rules
-
-
 def identify_table_type(excel_data):
     headers = excel_data['headers']
-    # Extrai os pares (column, value) dos headers lidos
-    file_columns = [(h['column'], h['value']) for h in headers]
-    # Regras clientes
-    customer_rules = map_rules(CUSTOMER_RULES)
-    customer_columns = [(r['column'], r['value']) for r in customer_rules]
-    is_customer = file_columns == customer_columns
-    # Regras produtos
-    product_rules = map_rules(PRODUCT_RULES)
-    product_columns = [(r['column'], r['value']) for r in product_rules]
-    is_product = file_columns == product_columns
-    if is_customer:
-        return 'customer'
-    elif is_product:
-        return 'product'
+    # Cria pares (key, column) dos headers lidos
+    header_pairs = set((h['key'], h['column']) for h in headers)
+
+    # Cria pares (key, column) das regras
+    customer_pairs = set((r['key'], r['column']) for r in CUSTOMER_RULES)
+    product_pairs = set((r['key'], r['column']) for r in PRODUCT_RULES)
+
+    # Diferenças detalhadas
+    customer_missing = customer_pairs - header_pairs
+    customer_extra = header_pairs - customer_pairs
+    product_missing = product_pairs - header_pairs
+    product_extra = header_pairs - product_pairs
+
+    if not customer_missing and not customer_extra:
+        return 'CUSTOMER'
+    elif not product_missing and not product_extra:
+        return 'PRODUCT'
     else:
-        return 'desconhecido'
-
-
-# Exemplo de uso:
-# header = ['nome', 'preco', 'quantidade']
-# tipo = identify_table_type(header, 'regras_produtos.json', 'regras_clientes.json')
-# print(tipo)
+        print('Diferenças para CUSTOMER:')
+        print('Faltando nos headers:', customer_missing)
+        print('Sobrando nos headers:', customer_extra)
+        print('Diferenças para PRODUCT:')
+        print('Faltando nos headers:', product_missing)
+        print('Sobrando nos headers:', product_extra)
+        return 'UNKNOWN'

@@ -1,36 +1,25 @@
-importe os arquios de regras e faça um mapeamento neles como no exemplo abaixo
+A função identify_table_type agora compara as keys e columns dos headers lidos com as dos arquivos de regras para identificar se a planilha é do tipo customer, product ou desconhecida. O retorno será 'CUSTOMER', 'PRODUCT' ou 'UNKNOWN' conforme o caso.
 
-customer.rules =[
-{
-"column": "A",
-"label": "CÓDIGO",
-"name": "code",
-"rules": "nullable",
-},
-....
+exemplo de comparação: 
+headers = [{
+    "key": "codigo",
+    "column": "A"
+    ...
+}, {
+    "key": "mome",
+    "column": "B"
+    ...
+}..]
 
-{
-"column": "G",
-"label": "INDICADOR ICMS",
-"name": "icms_indicator",
-"rules": "nullable|enum:1,2,9",
-},...
 
-]
+rules = [{
+    "key": "codigo",
+    "column": "A"
+    ...
+}, {
+    "key": "nome",
+    "column": "B"
+    ...
+}...]
 
-deve ficar no formato abaixo
-customerRules = [
-
-{ "label": "CÓDIGO",
-"value": "codigo",
-"column": "A",
-}
-....
-{ "label": "INDICADOR ICMS",
-"value": "indicador_icms",
-"column": "G",
-}
-....
-]
-
-faça o mesmo para product.rules e de forma dinâmica no arquivo identifier.py
+se a key e a column do headers forem  diferentes das do rules de algmas das regras, a função retornará 'UNKNOWN'. Se todas as keys e columns coincidirem com as regras de customer, retornará 'CUSTOMER', e se coincidirem com as regras de product, retornará 'PRODUCT'.
