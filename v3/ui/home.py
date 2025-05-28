@@ -1,127 +1,132 @@
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import ttk, filedialog, messagebox
 import os
 import importlib.util
-import sys  # Import garantido no topo
+import sys
 import logging
 from openpyxl import load_workbook
 
-# Importa o módulo de validação
 from script import validate as validate_module
 
 
-class HomeApp(tk.Tk):
+class HomeApp(ctk.CTk):
     def __init__(self, excel_data, tipo):
         super().__init__()
         self.title('Assistente de Importação - Visualização de Dados')
-        self.geometry('250x250')
+        self.geometry('800x600')
         self.excel_data = excel_data
         self.tipo = tipo
         self.after_ids = []
         self.operacao_em_andamento = False
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
-        self.validation_errors = self.validar_linhas(excel_data, tipo)
-        self.create_widgets()
+        self.validation_errors = self._get_invalid_row_indices()
+        self._sort_state = {}
+        self.erro_ordenado = False
+        self._original_rows = list(self.excel_data['rows'])
+        self._setup_ui()
 
-    def validar_linhas(self, excel_data, tipo):
-        rows = excel_data['rows']
+    def _get_invalid_row_indices(self):
+        """Valida todas as linhas e retorna índices das inválidas."""
+        rows = self.excel_data['rows']
         invalid_indices = set()
         for idx, row in enumerate(rows):
-            errors = validate_module.validate(row, tipo, all_rows=rows)
-            # print(errors)  # Log de erros para depuração
+            errors = validate_module.validate(row, self.tipo, all_rows=rows)
             if errors:
                 invalid_indices.add(idx)
         return invalid_indices
 
-    def create_widgets(self):
-        # Corrigido: use 'label' e 'key' conforme o formato do reading.py
-        headers = [h['label'] for h in self.excel_data['headers']]
-        normalized_headers = [h['key'] for h in self.excel_data['headers']]
-        rows = self.excel_data['rows']
+    def _setup_ui(self):
+        """Cria e organiza os widgets da interface."""
+        self._create_search_bar()
+        self._create_error_sort_button()
+        self._create_table_frame()
 
-        # Barra de busca (agora no topo)
-        search_frame = ttk.Frame(self)
-        search_frame.pack(fill=tk.X, padx=10, pady=5)
-        tk.Label(search_frame, text='Buscar:').pack(side=tk.LEFT)
-        self.search_var = tk.StringVar()
-        search_entry = ttk.Entry(search_frame, textvariable=self.search_var)
-        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        search_entry.bind('<KeyRelease>', self.filtrar_tabela)
+    def _create_search_bar(self):
+        search_frame = ctk.CTkFrame(self)
+        search_frame.pack(fill="x", padx=10, pady=5)
+        ctk.CTkLabel(search_frame, text='Buscar:').pack(side="left")
+        self.search_var = ctk.StringVar()
+        search_entry = ctk.CTkEntry(search_frame, textvariable=self.search_var)
+        search_entry.pack(side="left", fill="x", expand=True)
+        search_entry.bind('<KeyRelease>', self._on_search)
 
-        # Botão para ordenar por erro
-        self.erro_ordenado = False  # Estado da ordenação por erro
-        btn_frame = ttk.Frame(self)
-        btn_frame.pack(fill=tk.X, padx=10, pady=2)
-        self.btn_erro = ttk.Button(
+    def _create_error_sort_button(self):
+        btn_frame = ctk.CTkFrame(self)
+        btn_frame.pack(fill="x", padx=10, pady=2)
+        self.btn_erro = ctk.CTkButton(
             btn_frame,
             text="Ordenar por Erros",
-            command=self.toggle_erro_ordem
+            command=self._toggle_error_sort
         )
-        self.btn_erro.pack(side=tk.LEFT)
+        self.btn_erro.pack(side="left")
 
-        # Frame para tabela (corrigido)
-        frame = ttk.Frame(self)
-        frame.pack(fill=tk.BOTH, expand=True)
+    def _create_table_frame(self):
+        frame = ctk.CTkFrame(self)
+        frame.pack(fill="both", expand=True, padx=10, pady=10)
+        headers = [h['label'] for h in self.excel_data['headers']]
+        normalized_headers = [h['key'] for h in self.excel_data['headers']]
 
-        # Tabela
+        # Estilo para cabeçalho em negrito
+        style = ttk.Style()
+        style.configure("Treeview.Heading", font=('Arial', 10, 'bold'))
+
         self.tree = ttk.Treeview(
-            frame, columns=normalized_headers, show='headings')
-        self._sort_state = {}  # Armazena o estado de ordenação por coluna
+            frame, columns=normalized_headers, show='headings'
+        )
+        # Dicionário para armazenar larguras das colunas
+        self._col_widths = {col_id: 120 for col_id in normalized_headers}
+
+        def on_column_resize(event):
+            # Atualiza o dicionário de larguras ao redimensionar
+            for col_id in normalized_headers:
+                self._col_widths[col_id] = self.tree.column(col_id, width=None)
+            # Reaplica as larguras para manter as outras colunas fixas
+            for col_id, width in self._col_widths.items():
+                self.tree.column(col_id, width=width)
+
+        self.tree.bind('<ButtonRelease-1>', on_column_resize)
 
         for idx, header in enumerate(headers):
             col_id = normalized_headers[idx]
             self.tree.heading(
                 col_id,
                 text=header,
-                command=lambda c=col_id: self.sort_by_column(c)
+                command=lambda c=col_id: self._sort_by_column(c)
             )
-            self.tree.column(col_id, anchor=tk.CENTER, width=120)
-
-        self._original_rows = list(rows)  # Guarda a ordem original
-        self.populate_table(rows, normalized_headers)
-
-        # Destacar cabeçalho, índice e linhas inválidas
+            self.tree.column(col_id, anchor="center", width=120)
         self.tree.tag_configure('invalid', background='#ffcccc')
         self.tree.tag_configure(
-            'header_row', background='#e0e0e0', font=('Arial', 10, 'bold'))
-        self.tree.pack(fill=tk.BOTH, expand=True)
-
-        # Scrollbars
-        scrollbar_y = ttk.Scrollbar(
-            frame, orient=tk.VERTICAL, command=self.tree.yview)
-        scrollbar_y.pack(side=tk.RIGHT, fill=tk.Y)
-        scrollbar_x = ttk.Scrollbar(
-            frame, orient=tk.HORIZONTAL, command=self.tree.xview)
-        scrollbar_x.pack(side=tk.BOTTOM, fill=tk.X)
+            'header_row', background='#e0e0e0')  # Removido o font bold aqui
+        self.tree.pack(fill="both", expand=True)
+        scrollbar_y = ctk.CTkScrollbar(
+            frame, orientation="vertical", command=self.tree.yview)
+        scrollbar_y.pack(side="right", fill="y")
+        scrollbar_x = ctk.CTkScrollbar(
+            frame, orientation="horizontal", command=self.tree.xview)
+        scrollbar_x.pack(side="bottom", fill="x")
         self.tree.configure(yscroll=scrollbar_y.set, xscroll=scrollbar_x.set)
+        self._populate_table(self._original_rows, normalized_headers)
 
-    def toggle_erro_ordem(self):
-        # Alterna entre ordenar por erro e restaurar ordem original
+    def _toggle_error_sort(self):
         headers = [h['key'] for h in self.excel_data['headers']]
         if not self.erro_ordenado:
-            # Ordena: linhas inválidas primeiro
             rows = sorted(self._original_rows,
-                          key=lambda r: not self.is_row_invalid(r))
-            self.btn_erro.config(text="Restaurar Ordem")
+                          key=lambda r: not self._is_row_invalid(r))
+            self.btn_erro.configure(text="Restaurar Ordem")
             self.erro_ordenado = True
         else:
-            # Restaura ordem original
             rows = list(self._original_rows)
-            self.btn_erro.config(text="Ordenar por Erros")
+            self.btn_erro.configure(text="Ordenar por Erros")
             self.erro_ordenado = False
-        self.populate_table(rows, headers)
+        self._populate_table(rows, headers)
 
-    def populate_table(self, rows, normalized_headers):
-        # Limpa e preenche a tabela
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-        # Corrigir para lidar com linhas duplicadas
+    def _populate_table(self, rows, normalized_headers):
+        self.tree.delete(*self.tree.get_children())
         original_rows = self.excel_data['rows']
         used_indices = set()
         for row in rows:
             values = [row.get(col, {}).get('value', '')
                       for col in normalized_headers]
-            # Busca o índice da linha no conjunto original, considerando duplicatas
             idx_original = next((i for i, r in enumerate(original_rows)
                                  if r == row and i not in used_indices), None)
             if idx_original is not None:
@@ -133,8 +138,7 @@ class HomeApp(tk.Tk):
                 tags.append('header_row')
             self.tree.insert('', 'end', values=values, tags=tuple(tags))
 
-    def sort_by_column(self, col):
-        # Alterna entre ascendente e descendente
+    def _sort_by_column(self, col):
         rows = self.excel_data['rows']
         normalized_headers = [h['key'] for h in self.excel_data['headers']]
         reverse = self._sort_state.get(col, False)
@@ -146,27 +150,25 @@ class HomeApp(tk.Tk):
                 reverse=reverse
             )
         except Exception:
-            sorted_rows = rows  # fallback
+            sorted_rows = rows
         self._sort_state[col] = not reverse
-        self.populate_table(sorted_rows, normalized_headers)
+        self._populate_table(sorted_rows, normalized_headers)
 
-    def filtrar_tabela(self, event=None):
+    def _on_search(self, event=None):
         filtro = self.search_var.get().lower()
         headers = [h['key'] for h in self.excel_data['headers']]
         filtered_rows = []
-        for i, row in enumerate(self.excel_data['rows']):
+        for row in self.excel_data['rows']:
             values = [row.get(col, {}).get('value', '') for col in headers]
             if filtro in ' '.join(values).lower():
                 filtered_rows.append(row)
-        self.populate_table(filtered_rows, headers)
+        self._populate_table(filtered_rows, headers)
 
-    def is_row_invalid(self, row):
-        # Considera inválido se o índice da linha estiver em self.validation_errors
+    def _is_row_invalid(self, row):
         idx = self.excel_data['rows'].index(row)
         return idx in self.validation_errors
 
     def safe_after(self, delay, callback):
-        # Agendamento seguro de callbacks
         if self.winfo_exists():
             after_id = self.after(delay, callback)
             self.after_ids.append(after_id)
@@ -174,7 +176,6 @@ class HomeApp(tk.Tk):
         return None
 
     def cancel_all_after(self):
-        # Cancela todos os callbacks agendados
         for after_id in self.after_ids:
             try:
                 self.after_cancel(after_id)
@@ -189,14 +190,7 @@ class HomeApp(tk.Tk):
         self.cancel_all_after()
         self.destroy()
 
-# Função para abrir a tela Home com os dados lidos
-
 
 def abrir_home_com_dados(excel_data, tipo):
     app = HomeApp(excel_data, tipo)
     app.mainloop()
-
-# Exemplo de uso:
-# from script.reading import read_excel
-# excel_data = read_excel('data/origin/SEU_ARQUIVO.xlsx')
-# abrir_home_com_dados(excel_data)
